@@ -105,6 +105,9 @@
   .controls{margin-top:32px; display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:6px 30px; font-size:13px; color:var(--ink-dim); letter-spacing:.03em; max-width:540px;}
   .controls span b{color:var(--saffron); font-family:'Orbitron',sans-serif; font-size:11px; margin-right:6px;}
 
+  /* AdSense placements: start + game-over screens only, never mid-run */
+  .ad-slot{margin:22px auto 0; width:min(728px,92vw); min-height:90px; display:flex; align-items:center; justify-content:center;}
+
   .stat-row{display:flex; gap:40px; margin-top:24px;}
   .stat{text-align:center;}
   .stat-num{font-family:'Orbitron',sans-serif; font-size:32px; color:var(--gold); text-shadow:0 0 16px rgba(255,210,74,.6);}
@@ -157,6 +160,7 @@
     <span><b>↓ / S</b>Slide under banners</span><span><b>P / ESC</b>Pause</span>
     <span><b>SWIPE</b>Same on mobile</span><span><b>₹ COINS</b>Grab every rupee</span>
   </div>
+  <div class="ad-slot" id="adStart" hidden></div>
 </div>
 
 <div id="screenPaused" class="overlay" hidden>
@@ -174,6 +178,7 @@
   </div>
   <div id="newBest" hidden>NEW BEST RUN!</div>
   <button class="btn" id="btnRetry">RUN AGAIN</button>
+  <div class="ad-slot" id="adOver" hidden></div>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/0.140.0/three.min.js"></script>
@@ -1224,6 +1229,55 @@ const Spawner = (() => {
   return { update, reset, difficulty };
 })();
 
+/* ================================ ADS ==================================== */
+// Google AdSense monetization. Everything below is INERT until you fill in
+// your publisher ID — until then no script loads, no requests are made and
+// the ad containers stay hidden. To go live you need:
+//   1. An approved AdSense account with this site added (approval requires
+//      a real public domain — localhost will not be approved)
+//   2. client: your publisher ID, e.g. 'ca-pub-1234567890123456'
+//   3. startSlot / overSlot: display ad unit IDs from the AdSense console.
+//      Leave them empty to rely on Auto ads alone — anchor and vignette
+//      formats need no ad units, just enable them under
+//      AdSense -> Sites -> your site -> Ads.
+// Policy note: ads appear on the start and game-over screens only, never
+// during gameplay.
+const ADSENSE = {
+  client: '',      // 'ca-pub-XXXXXXXXXXXXXXXX'
+  startSlot: '',   // display ad unit on the start screen
+  overSlot: '',    // display ad unit on the game-over screen
+};
+
+const Ads = (() => {
+  let loaderDone = false;
+  function init() {
+    if (loaderDone || !ADSENSE.client) return;
+    loaderDone = true;
+    const s = document.createElement('script');
+    s.async = true;
+    s.src = 'https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=' + ADSENSE.client;
+    s.crossOrigin = 'anonymous';
+    document.head.appendChild(s);
+  }
+  function fill(containerId, slot) {
+    const box = document.getElementById(containerId);
+    if (!box || !ADSENSE.client || !slot) return;
+    init();
+    box.hidden = false;
+    box.textContent = '';
+    const ins = document.createElement('ins');
+    ins.className = 'adsbygoogle';
+    ins.style.display = 'block';
+    ins.dataset.adClient = ADSENSE.client;
+    ins.dataset.adSlot = String(slot);
+    ins.dataset.adFormat = 'auto';
+    ins.dataset.fullWidthResponsive = 'true';
+    box.appendChild(ins);
+    (window.adsbygoogle = window.adsbygoogle || []).push({});
+  }
+  return { init, fill };
+})();
+
 /* ================================ HUD ==================================== */
 const HUD = {
   el: {},
@@ -1326,6 +1380,8 @@ class Game {
     this.player = new Player(this.scene);
 
     HUD.init();
+    Ads.init();
+    Ads.fill('adStart', ADSENSE.startSlot);
     Input.init(this.renderer.domElement);
 
     this.clock = new THREE.Clock();
@@ -1424,7 +1480,12 @@ class Game {
     HUD.el.finalDist.textContent = Math.floor(this.distance) + 'm';
     HUD.el.newBest.hidden = !isBest;
     HUD.el.bestVal.textContent = HUD.inr(HUD._best());
-    setTimeout(() => { if (this.state === 'over') HUD.el.screenOver.hidden = false; }, 900);
+    setTimeout(() => {
+      if (this.state === 'over') {
+        HUD.el.screenOver.hidden = false;
+        Ads.fill('adOver', ADSENSE.overSlot);
+      }
+    }, 900);
     Audio.gameOver();
   }
 
