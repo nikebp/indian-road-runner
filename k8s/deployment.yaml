@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
         - name: indian-road-runner
-          image: ghcr.io/nikebp/indian-road-runner:sha-000000
+          image: ghcr.io/nikebp/indian-road-runner:sha-e173d4a
           ports:
             - containerPort: 80
           resources:
