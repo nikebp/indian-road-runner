@@ -1480,6 +1480,7 @@ class Game {
     HUD.el.finalDist.textContent = Math.floor(this.distance) + 'm';
     HUD.el.newBest.hidden = !isBest;
     HUD.el.bestVal.textContent = HUD.inr(HUD._best());
+    this._submitLeaderboard(Math.floor(this.score), Math.floor(this.distance) + 'm');
     setTimeout(() => {
       if (this.state === 'over') {
         HUD.el.screenOver.hidden = false;
@@ -1487,6 +1488,18 @@ class Game {
       }
     }, 900);
     Audio.gameOver();
+  }
+
+  _submitLeaderboard(score, meta) {
+    if (score <= 0) return;
+    try {
+      const name = localStorage.getItem('arcade_name') || 'PLAYER';
+      fetch('/api/leaderboard/runner', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, score, meta })
+      }).catch(() => {});
+    } catch (e) { /* leaderboard is optional */ }
   }
 
   updateCamera(dt) {
