@@ -1,0 +1,28 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: indian-road-runner
+  labels:
+    app: indian-road-runner
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: indian-road-runner
+  template:
+    metadata:
+      labels:
+        app: indian-road-runner
+    spec:
+      containers:
+        - name: indian-road-runner
+          image: ghcr.io/nikebp/indian-road-runner:sha-000000
+          ports:
+            - containerPort: 80
+          resources:
+            requests:
+              cpu: 50m
+              memory: 32Mi
+            limits:
+              cpu: 300m
+              memory: 96Mi
